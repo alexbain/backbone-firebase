@@ -1,0 +1,6 @@
+Backbone <-> Firebase 0.0.1
+
+Note: This was inspired by the Backpusher repository (https://github.com/pusher/backpusher).
+
+This Backbone extension is designed to help store models / collections in Firebase.
+
