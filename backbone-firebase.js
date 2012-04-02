@@ -9,6 +9,7 @@
 //
 (function(exports, undefined){
 
+  // Note: Add your appname to the end of this string
   var urlPrefix = 'http://gamma.firebase.com/';
 
   var BackboneFirebase = function(collection, options) {
