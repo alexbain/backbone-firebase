@@ -1,4 +1,4 @@
-//     Backbone <-> Firebase v0.0.1
+//     Backbone <-> Firebase v0.0.2
 //
 //     Started as a fork of Backpusher.js (https://github.com/pusher/backpusher)
 //
@@ -122,6 +122,7 @@
         break;
       case 'read':
         ref.once('value', function (data) {
+          data = _.toArray(data.val());
           if (options.success) options.success(data, "success", {});
         });
         break;
