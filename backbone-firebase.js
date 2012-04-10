@@ -1,4 +1,4 @@
-//     Backbone <-> Firebase v0.0.2
+//     Backbone <-> Firebase v0.0.3
 //
 //     Started as a fork of Backpusher.js (https://github.com/pusher/backpusher)
 //
@@ -99,23 +99,15 @@
       dataType: 'json'
     };
 
-    // Ensure that we have a URL.
-    if (!options.url) {
-      params.url = getValue(model, 'url') || urlError();
-    }
-
-    // Ensure that we have the appropriate request data.
-    if (!options.data && model && (method == 'create' || method == 'update')) {
-      params.data = JSON.stringify(model);
-    }
+    var url = getValue(model, 'url') || urlError();
 
     // Setup the Firebase Reference
-    var ref = new Firebase(urlPrefix + params.url);
+    var ref = new Firebase(urlPrefix + url);
 
     // Map CRUD to Firebase actions
     switch (method) {
       case 'create':
-        ref.push(model, function (success) {
+        ref.push(model.toJSON(), function (success) {
           if (success && options.success) options.success();
           else if (!success && options.error) options.error();
         });
@@ -153,5 +145,3 @@
   exports.BackboneFirebase = BackboneFirebase;
 
 })((typeof exports !== 'undefined' ? exports : this));
-
-
