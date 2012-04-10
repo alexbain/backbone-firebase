@@ -94,11 +94,6 @@
     // Default options, unless specified.
     options || (options = {});
 
-    // Default JSON-request options.
-    var params = {
-      dataType: 'json'
-    };
-
     var url = getValue(model, 'url') || urlError();
 
     // Setup the Firebase Reference
