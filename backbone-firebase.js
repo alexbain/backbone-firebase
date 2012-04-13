@@ -2,7 +2,7 @@
 //
 //     Started as a fork of Backpusher.js (https://github.com/pusher/backpusher)
 //
-//     Backbone <-> Firebase v0.0.1 (c) 2012 Alex Bain
+//     Backbone <-> Firebase (c) 2012 Alex Bain
 //     Backpusher originally (c) 2011-2012 Pusher
 //
 //     This script may be freely distributed under the MIT license.
