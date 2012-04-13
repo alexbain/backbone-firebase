@@ -1,7 +1,0 @@
-Backbone <-> Firebase 0.0.1
-
-This script does two things:
-
-* Overloads Backbone.sync to use Firebase instead of AJAX.
-* Adds a BackboneFirebase object which keeps a collection in sync with Firebase
-
