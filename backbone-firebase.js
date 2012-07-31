@@ -11,13 +11,29 @@
 
   // Note: Add your appname to the end of this string
   var urlPrefix = 'http://gamma.firebase.com/';
-
+  
+  var defaults = {
+    urlPrefix: urlPrefix,
+    idAttribute: '_firebase_name'
+  };
+  
   var BackboneFirebase = function(collection, options) {
 
     this.reference = new Firebase(urlPrefix + collection.url);
     this.collection = collection;
-    this.options = (options || {});
-
+    
+    // Extend the defaults with the options provided and set as `this.options`.
+    this.options = defaults;
+    if (options) {
+      for (var k in options) {
+        this.options[k] = options[k];
+      }
+    }
+    // Optionally pass the urlPrefix in.
+    this.reference = new Firebase(this.options.urlPrefix + collection.url);
+    // Optionally specify the idAttribute to use.
+    this.idAttribute = this.options.idAttribute;
+    
     if (this.options.events) {
       this.events = this.options.events;
     } else {
@@ -43,9 +59,13 @@
       }
     },
 
-    _add: function(model) {
+    _add: function(pushed_model) {
       var Collection = this.collection;
-      model = new Collection.model(model.val());
+
+      // Set the model id attribute to be the firebase reference name.
+      var attr = pushed_model.val();
+      attr[this.idAttribute] = pushed_model.name();
+      model = new Collection.model(attr);
 
       Collection.add(model);
       this.trigger('remote_create', model);
@@ -60,7 +80,9 @@
     },
 
     child_changed: function(pushed_model) {
-      var model = this.collection.get(pushed_model.val());
+
+      // Get existing model using the reference name as the model id.
+      var model = this.collection.get(pushed_model.name());
 
       if (model) {
         model = model.set(pushed_model.val());
@@ -69,12 +91,14 @@
 
         return model;
       } else {
-        return this._add(pushed_model.val());
+        return this._add(pushed_model);
       }
     },
 
     child_removed: function(pushed_model) {
-      var model = this.collection.get(pushed_model.val());
+
+      // Get existing model using the reference name as the model id.
+      var model = this.collection.get(pushed_model.name());
 
       if (model) {
         this.collection.remove(model);
