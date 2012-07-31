@@ -13,6 +13,10 @@ This script does two things:
 
 If you would like your collection to stay in sync w/ Firebase do the following:
 
+    var Post = Backbone.Model.extend({
+      idAttribute: '_firebase_name'
+    });
+    
     var collection = Backbone.Collection.extend({
       model: Post,
       url: "/posts",
