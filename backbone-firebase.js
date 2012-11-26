@@ -146,7 +146,7 @@
       case 'delete':
         ref.remove(function (success) {
           if (success && options.success) options.success();
-          else if (!success && options.erorr) options.error();
+          else if (!success && options.error) options.error();
         });
         break;
       default:
