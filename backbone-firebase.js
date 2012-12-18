@@ -126,7 +126,13 @@
     var url = getValue(model, 'url') || urlError();
 
     // Setup the Firebase Reference
-    var ref = new Firebase(model.urlPrefix + url);
+    var ref;
+    if (model.isNew()) {
+        ref  = new Firebase(model.urlPrefix + url);
+    } else {
+        ref  = new Firebase(model.urlPrefix + url + "/" + model.id);
+    }
+    //console.log("ref:", ref.toString());
 
     // Map CRUD to Firebase actions
     switch (method) {
