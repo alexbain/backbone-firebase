@@ -10,16 +10,15 @@
 (function(exports, undefined){
 
   // Note: Add your appname to the end of this string
-  var urlPrefix = 'http://gamma.firebase.com/';
+  var urlPrefix = 'http://yourdb.firebaseio.com/'; // will throw error unless you change to the new style "https://<db>.firebaseIO.com"
   
   var defaults = {
     urlPrefix: urlPrefix,
-    idAttribute: '_firebase_name'
+    idAttribute: '_firebase_name'  // convenience so you can call model.get("_firebase_name"), but really model.id would be just fine
   };
   
   var BackboneFirebase = function(collection, options) {
 
-    this.reference = new Firebase(urlPrefix + collection.url);
     this.collection = collection;
     
     // Extend the defaults with the options provided and set as `this.options`.
@@ -29,8 +28,9 @@
         this.options[k] = options[k];
       }
     }
-    // Optionally pass the urlPrefix in.
+    // You better the urlPrefix in. (Will override defaults)
     this.reference = new Firebase(this.options.urlPrefix + collection.url);
+
     // Optionally specify the idAttribute to use.
     this.idAttribute = this.options.idAttribute;
     
@@ -63,6 +63,7 @@
       var Collection = this.collection;
 
       // Set the model id attribute to be the firebase reference name.
+        // console.log("_add pm", pushed_model, pushed_model.name());
       var attr = pushed_model.val();
       attr[this.idAttribute] = pushed_model.name();
       model = new Collection.model(attr);
@@ -75,10 +76,12 @@
   });
 
   BackboneFirebase.defaultEvents = {
+    // don't call collection.fetch().  Let child_added do its job for you.
     child_added: function(pushed_model) {
       return this._add(pushed_model);
     },
 
+    // firebase may call this at any time to sync
     child_changed: function(pushed_model) {
 
       // Get existing model using the reference name as the model id.
@@ -95,6 +98,7 @@
       }
     },
 
+    // firebase may call this at any time to sync
     child_removed: function(pushed_model) {
 
       // Get existing model using the reference name as the model id.
@@ -112,6 +116,7 @@
   // Original Backbone.sync method from v0.9.2
   Backbone.sync = function(method, model, options) {
 
+    //console.log("bbfbsync", method, model, options);
     // Verify Firebase object exists
     if (typeof Firebase === undefined) return false;
 
@@ -121,15 +126,31 @@
     var url = getValue(model, 'url') || urlError();
 
     // Setup the Firebase Reference
-    var ref = new Firebase(urlPrefix + url);
+    var ref;
+    if (model.isNew()) {
+        ref  = new Firebase(model.urlPrefix + url);
+    } else {
+        ref  = new Firebase(model.urlPrefix + url + "/" + model.id);
+    }
+    //console.log("ref:", ref.toString());
 
     // Map CRUD to Firebase actions
     switch (method) {
       case 'create':
-        ref.push(model.toJSON(), function (success) {
+        // get the new reference first
+        newref = ref.push();
+
+        // push all the attributes into it
+        newref.set(model.toJSON(), function (success) {
           if (success && options.success) options.success();
           else if (!success && options.error) options.error();
         });
+        
+        // suck the new name() from the newref and shove it into the attr hash for setting into the model
+        attr = []
+        attr[model.idAttribute] = newref.name();
+        model.set(attr);
+        
         break;
       case 'read':
         ref.once('value', function (data) {
