@@ -1,166 +1,183 @@
-//     Backbone <-> Firebase v0.0.3
+//     Backbone <-> Firebase v0.0.4
 //
 //     Started as a fork of Backpusher.js (https://github.com/pusher/backpusher)
 //
 //     Backbone <-> Firebase (c) 2012 Alex Bain
 //     Backpusher originally (c) 2011-2012 Pusher
 //
+//     @contributor  katowulf@gmail.com
+//
 //     This script may be freely distributed under the MIT license.
 //
 (function(exports, undefined){
 
-  // Note: Add your appname to the end of this string
-  var urlPrefix = 'http://gamma.firebase.com/';
-  
-  var defaults = {
-    urlPrefix: urlPrefix,
-    idAttribute: '_firebase_name'
-  };
-  
-  var BackboneFirebase = function(collection, options) {
+   var BackboneFirebase = function(collection, options) {
+      this.collection = collection;
 
-    this.reference = new Firebase(urlPrefix + collection.url);
-    this.collection = collection;
-    
-    // Extend the defaults with the options provided and set as `this.options`.
-    this.options = defaults;
-    if (options) {
-      for (var k in options) {
-        this.options[k] = options[k];
-      }
-    }
-    // Optionally pass the urlPrefix in.
-    this.reference = new Firebase(this.options.urlPrefix + collection.url);
-    // Optionally specify the idAttribute to use.
-    this.idAttribute = this.options.idAttribute;
-    
-    if (this.options.events) {
-      this.events = this.options.events;
-    } else {
-      this.events = BackboneFirebase.defaultEvents;
-    }
+      // Extend the defaults with the options provided and set as `this.options`.
+      this.options = Backbone.$.extend({
+         urlPrefix: BackboneFirebase.DEFAULT_INSTANCE, // use default unless options provides a prefix
+         idAttribute: '_firebase_name'
+      }, options);
 
-    this._bindEvents();
-    this.initialize(collection, options);
+      // Optionally pass the urlPrefix in.
+      this.reference = getFirebaseRef(this.options.urlPrefix, collection.url);
 
-    return this;
-  };
+      // Optionally specify the idAttribute to use.
+      this.idAttribute = this.options.idAttribute;
 
-  _.extend(BackboneFirebase.prototype, Backbone.Events, {
-    initialize: function() {},
-
-    _bindEvents: function() {
-      if (!this.events) return;
-
-      for (var event in this.events) {
-        if (this.events.hasOwnProperty(event)) {
-          this.reference.on(event, _.bind(this.events[event], this));
-        }
-      }
-    },
-
-    _add: function(pushed_model) {
-      var Collection = this.collection;
-
-      // Set the model id attribute to be the firebase reference name.
-      var attr = pushed_model.val();
-      attr[this.idAttribute] = pushed_model.name();
-      model = new Collection.model(attr);
-
-      Collection.add(model);
-      this.trigger('remote_create', model);
-
-      return model;
-    }
-  });
-
-  BackboneFirebase.defaultEvents = {
-    child_added: function(pushed_model) {
-      return this._add(pushed_model);
-    },
-
-    child_changed: function(pushed_model) {
-
-      // Get existing model using the reference name as the model id.
-      var model = this.collection.get(pushed_model.name());
-
-      if (model) {
-        model = model.set(pushed_model.val());
-
-        this.trigger('remote_update', model);
-
-        return model;
+      if (this.options.events) {
+         this.events = this.options.events;
       } else {
-        return this._add(pushed_model);
+         this.events = BackboneFirebase.defaultEvents;
       }
-    },
 
-    child_removed: function(pushed_model) {
+      this._bindEvents();
+      this.initialize(collection, options);
 
-      // Get existing model using the reference name as the model id.
-      var model = this.collection.get(pushed_model.name());
+      return this;
+   };
 
-      if (model) {
-        this.collection.remove(model);
-        this.trigger('remote_destroy', model);
+   _.extend(BackboneFirebase.prototype, Backbone.Events, {
+      initialize: function() {},
 
-        return model;
+      _bindEvents: function() {
+         if (!this.events) return;
+
+         for (var event in this.events) {
+            if (this.events.hasOwnProperty(event)) {
+               this.reference.on(event, _.bind(this.events[event], this));
+            }
+         }
+      },
+
+      _add: function(pushed_model) {
+         var Collection = this.collection;
+
+         // Set the model id attribute to be the firebase reference name.
+         var attr = pushed_model.val();
+         attr[this.idAttribute] = pushed_model.name();
+         model = new Collection.model(attr);
+
+         Collection.add(model);
+         this.trigger('remote_create', model);
+
+         return model;
       }
-    }
-  };
+   });
 
-  // Original Backbone.sync method from v0.9.2
-  Backbone.sync = function(method, model, options) {
+   // Allows the default URL to be set globally (can still be overridden in options, too)
+   BackboneFirebase.DEFAULT_INSTANCE = 'http://YOURDB.firebaseio.com';
 
-    // Verify Firebase object exists
-    if (typeof Firebase === undefined) return false;
+   BackboneFirebase.defaultEvents = {
+      child_added: function(pushed_model) {
+         return this._add(pushed_model);
+      },
 
-    // Default options, unless specified.
-    options || (options = {});
+      child_changed: function(pushed_model) {
 
-    var url = getValue(model, 'url') || urlError();
+         // Get existing model using the reference name as the model id.
+         var model = this.collection.get(pushed_model.name());
 
-    // Setup the Firebase Reference
-    var ref = new Firebase(urlPrefix + url);
+         if (model) {
+            model = model.set(pushed_model.val());
 
-    // Map CRUD to Firebase actions
-    switch (method) {
-      case 'create':
-        ref.push(model.toJSON(), function (success) {
-          if (success && options.success) options.success();
-          else if (!success && options.error) options.error();
-        });
-        break;
-      case 'read':
-        ref.once('value', function (data) {
-          data = _.toArray(data.val());
-          if (options.success) options.success(data, "success", {});
-        });
-        break;
-      case 'update':
-        ref.set(model.toJSON(), function (success) {
-          if (success && options.success) options.success();
-          else if (!success && options.error) options.error();
-        });
-        break;
-      case 'delete':
-        ref.remove(function (success) {
-          if (success && options.success) options.success();
-          else if (!success && options.error) options.error();
-        });
-        break;
-      default:
-        break;
-    }
+            this.trigger('remote_update', model);
 
-    return ref;
-  };
+            return model;
+         } else {
+            return this._add(pushed_model);
+         }
+      },
 
-  var getValue = function(object, prop) {
-    if (!(object && object[prop])) return null;
-    return _.isFunction(object[prop]) ? object[prop]() : object[prop];
-  };
+      child_removed: function(pushed_model) {
 
-  exports.BackboneFirebase = BackboneFirebase;
+         // Get existing model using the reference name as the model id.
+         var model = this.collection.get(pushed_model.name());
+
+         if (model) {
+            this.collection.remove(model);
+            this.trigger('remote_destroy', model);
+
+            return model;
+         }
+      }
+   };
+
+   // store the rest API for future use (some models can be bound to this instead of Firebase)
+   Backbone.sync_AJAX = Backbone.sync;
+
+   // Original Backbone.sync method from v0.9.2
+   Backbone.sync = function(method, model, options) {
+
+      // Verify Firebase object exists
+      if (typeof Firebase === undefined) return false;
+
+      // Default options, unless specified.
+      options = Backbone.$.extend({
+         urlPrefix: BackboneFirebase.DEFAULT_INSTANCE
+      }, options);
+
+      var url = getValue(model, 'url');
+      if( !url ) {
+         return urlError();
+      }
+
+      // Setup the Firebase Reference
+      var ref = getFirebaseRef(options.urlPrefix, url);
+
+      // Map CRUD to Firebase actions
+      switch (method) {
+         case 'create':
+            ref.push(model.toJSON(), function (success) {
+               if (success && options.success) options.success();
+               else if (!success && options.error) options.error();
+            });
+            break;
+         case 'read':
+            ref.once('value', function (data) {
+               data = _.toArray(data.val());
+               if (options.success) options.success(data, "success", {});
+            });
+            break;
+         case 'update':
+            ref.set(model.toJSON(), function (success) {
+               if (success && options.success) options.success();
+               else if (!success && options.error) options.error();
+            });
+            break;
+         case 'delete':
+            ref.remove(function (success) {
+               if (success && options.success) options.success();
+               else if (!success && options.error) options.error();
+            });
+            break;
+         default:
+            break;
+      }
+
+      return ref;
+   };
+
+   function urlError() {
+      typeof(console) !== 'undefined' && console.error && console.error(new Error('model.url must be defined'));
+   }
+
+   function getFirebaseRef(prefix, url) {
+      if( !(prefix in INSTANCES) ) {
+         // prevent opening multiple instances of Firebase when using the same prefix
+         // one instance to rule them all, once instance to find them, one instance to bring them all, and in Backbone.bind() them
+         INSTANCES[prefix] = new Firebase(prefix);
+      }
+      return INSTANCES[prefix].child(url);
+   }
+   var INSTANCES = {};
+
+   var getValue = function(object, prop) {
+      if (!(object && object[prop])) return null;
+      return _.isFunction(object[prop]) ? object[prop]() : object[prop];
+   };
+
+   exports.BackboneFirebase = BackboneFirebase;
 
 })((typeof exports !== 'undefined' ? exports : this));
