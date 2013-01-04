@@ -67,4 +67,17 @@ Using the orginal Backbone.sync (AJAX) in tandem with Firebase:
     });
 ```
 
+Unbind Firebase callbacks (stop monitoring data and using resources) if a collection is no longer needed:
+
+```javascript
+   // inside Backbone.Collection
+   initialize: function() {
+      this.backboneFirebase = new new BackboneFirebase(this, {urlPrefix: 'http://DB_ONE.firebaseio.com'});
+   }
+
+   destroy: function() {
+      this.backboneFirebase.dispose();
+   }
+```
+
 Questions? Comments? [Let me know](https://github.com/alexbain/backbone-firebase/issues)!
