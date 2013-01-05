@@ -17,7 +17,8 @@ Example:
     BackboneFirebase.DEFAULT_INSTANCE = 'https://YOURDB.firebaseio.com';
 
     var Post = Backbone.Model.extend({
-      idAttribute: '_firebase_name'
+      idAttribute: '_firebase_name',
+      url: '/posts'
     });
     
     var collection = Backbone.Collection.extend({
@@ -30,7 +31,20 @@ Example:
     });
 ```
 
-Using multiple instances:
+#### Advanced Examples
+
+Overriding the model's default path ( model.url + '/' + model.id ) with something fancy:
+
+```javascript
+   var WackyPost = Backbone.Model.extend({
+      idAttribute: '_firebase_name',
+      url: function() {
+         return '/posts/'+(Math.random() * 100 + 1); // pick a random record because we like being wacky
+      }
+   });
+```
+
+Using multiple Firebase instances:
 
 ```javascript
     var collectionOne = Backbone.Collection.extend({
@@ -55,14 +69,8 @@ Using multiple instances:
 Using the orginal Backbone.sync (AJAX) in tandem with Firebase:
 
 ```javascript
-    // this will be synchronized using Firebase
+    // Declare the sync resource to override BackboneFirebase
     var Post = Backbone.Model.extend({
-      idAttribute: '_firebase_name',
-    });
-
-    // this will be synchronized using the REST API
-    var Post = Backbone.Model.extend({
-      idAttribute: '_firebase_name',
       sync:  Backbone.sync_AJAX
     });
 ```

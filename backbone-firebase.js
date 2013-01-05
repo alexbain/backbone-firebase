@@ -5,7 +5,7 @@
 //     Backbone <-> Firebase (c) 2012 Alex Bain
 //     Backpusher originally (c) 2011-2012 Pusher
 //
-//     @contributor  katowulf@gmail.com
+//     @contributor  Kato (katowulf@gmail.com)
 //
 //     This script may be freely distributed under the MIT license.
 //
@@ -22,6 +22,10 @@
          idAttribute: '_firebase_name',
          events: BackboneFirebase.defaultEvents
       }, options);
+
+      if( !collection.url ) {
+         return urlError('collection');
+      }
 
       // Optionally pass the urlPrefix in.
       this.reference = getFirebaseRef(this.options.urlPrefix, collection.url);
@@ -42,8 +46,8 @@
          var events = this.options.events;
          if (!events) return;
 
-         _.each(events, function(event) {
-            var fn = disposableEvent(this, event, events[event]);
+         _.each(events, function(f, event) {
+            var fn = disposableEvent(this, event, f);
             this.reference.on(event, fn);
          }, this);
       },
@@ -62,8 +66,14 @@
          return model;
       },
 
+      /**
+       * Free all resources and stop listening to all events
+       */
       dispose: function() {
          _.each(this.subscriptions, function(sub) { sub.dispose(); });
+         this.subscriptions = [];
+         this.collection = null;
+         this.options = null;
       }
    });
 
@@ -114,23 +124,23 @@
       if (typeof Firebase === undefined) return false;
 
       // Default options, unless specified.
-      options = Backbone.$.extend({
+      options = _.extend({
          urlPrefix: BackboneFirebase.DEFAULT_INSTANCE
       }, options);
 
-      var url = getValue(model, 'url');
-      if( !url ) {
-         return urlError();
+      var path = getPath(model, method, model.id);
+      if( !path ) {
+         return urlError('model');
       }
 
       // Setup the Firebase Reference
-      var ref = getFirebaseRef(options.urlPrefix, url);
+      var ref = getFirebaseRef(options.urlPrefix, path, method);
 
       // Map CRUD to Firebase actions
       switch (method) {
          case 'create':
-            ref.push(model.toJSON(), function (success) {
-               if (success && options.success) options.success();
+            var pushRef = ref.push(model.toJSON(), function (success) {
+               if (success && options.success) options.success(pushRef.name());
                else if (!success && options.error) options.error();
             });
             break;
@@ -159,8 +169,8 @@
       return ref;
    };
 
-   function urlError() {
-      typeof(console) !== 'undefined' && console.error && console.error(new Error('model.url must be defined'));
+   function urlError(source) {
+      typeof(console) !== 'undefined' && console.error && console.error(new Error(source+'.url must be defined'));
    }
 
    function getFirebaseRef(prefix, url) {
@@ -173,10 +183,41 @@
    }
    var INSTANCES = {};
 
-   var getValue = function(object, prop) {
-      if (!(object && object[prop])) return null;
-      return _.isFunction(object[prop]) ? object[prop]() : object[prop];
+   var getPath = function(object, method, id) {
+      var u;
+      if ( object ) {
+         if( _.isFunction(object['url']) ) {
+            u = object['url']();
+         }
+         else {
+            u = stripSlashes(object['url']);
+            switch(method) {
+               case 'update':
+               case 'read':
+               case 'delete':
+                  if( id ){
+                     u = u + '/' + id;
+                  }
+                  else {
+                     u = null;
+                  }
+                  break;
+               case 'create':
+                  break; // leave it alone
+               default:
+                  // do nothing
+            }
+         }
+      }
+      return u;
    };
+
+   function stripSlashes(u) {
+      var last = u.length-1;
+      if(u.indexOf('/') === 0) { u = u.substr(1); }
+      if(u.indexOf('/') === last) { u = u.substr(0, last); }
+      return u;
+   }
 
    // only intended to be used for Firebase on/off functions
    function disposableEvent(self, event, fn) {
