@@ -1,4 +1,4 @@
-//     Backbone <-> Firebase v0.0.3
+//     Backbone <-> Firebase v0.0.4
 //
 //     Started as a fork of Backpusher.js (https://github.com/pusher/backpusher)
 //

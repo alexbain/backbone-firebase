@@ -1,4 +1,16 @@
-### Backbone <-> Firebase 0.0.3
+### Note:
+
+As of January 29th, 2013 Firebase has released official Backbone.js bindings. You may want to use those instead of this library.
+
+[http://blog.firebase.com/post/41803484857/backfire-firebase-bindings-for-backbone-js](http://blog.firebase.com/post/41803484857/backfire-firebase-bindings-for-backbone-js)
+
+[https://github.com/firebase/backfire](https://github.com/firebase/backfire)
+
+Thanks to everyone who helped contribute to this library.
+
+
+
+### Backbone <-> Firebase 0.0.4
 
 This script does two things:
 
